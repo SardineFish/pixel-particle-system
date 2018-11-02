@@ -127,7 +127,7 @@ export function cross(u: Vector2, v: Vector2): number
     return u.x * v.y - u.y * v.x;
 }
 
-class Matrix3x3
+export class Matrix3x3
 {
     constructor(mat: Matrix3x3 | number[][] = null)
     {
@@ -176,5 +176,45 @@ class Matrix3x3
         this[1] = mat[1].copyWithin(0, 0);
         this[2] = mat[2].copyWithin(0, 0);
         return this;
+    }
+}
+
+export class Range extends Vector2
+{
+    constructor(from: number, to: number)
+    {
+        super(from, to);
+    }
+    get from()
+    {
+        return this[0];
+    }
+    set from(value)
+    {
+        this[0] = value;
+    }
+
+    get to()
+    {
+        return this[1];
+    }
+    set to(value)
+    {
+        this[1] = value;
+    }
+
+    get size()
+    {
+        console.log(this[1] - this[0]);
+        return this[1] - this[0];
+    }
+    inRange(n: number): boolean
+    {
+        return this.from < n && n < this.to;
+    }
+
+    inRangeInclude(n: number): boolean
+    {
+        return this.from <= n && n <= this.to;
     }
 }

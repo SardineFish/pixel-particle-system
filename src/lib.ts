@@ -1,4 +1,4 @@
-import { Vector4 } from "./vector";
+import { Vector4 } from "./math";
 
 export class Color
 {
@@ -45,3 +45,22 @@ export class Color
     }
 }
 
+export class SetList<T> extends Array<T>
+{
+    removeAt(idx: number): T
+    {
+        let element = this[idx] = this[this.length - 1];
+        this.length--;
+        return element;
+    }
+
+    insert(element: T, idx: number = this.length)
+    {
+        if (idx < this.length)
+        {
+            let t = this[idx];
+            this[idx] = element;
+            this[this.length] = t;
+        }
+    }
+}
