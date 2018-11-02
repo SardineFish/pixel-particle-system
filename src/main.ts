@@ -18,12 +18,15 @@ particleSystem.simulator = simulator;
 
 
 emitter.direction = randomAngle(-180, 180);
-emitter.speed = constantValue(300);
-emitter.size = randomInRange(1, 10);
+emitter.speed = randomInRange(100, 400);
+emitter.size = randomInRange(1, 5);
+emitter.color = (p, rand) =>
+{
+    return Color.fromHSL(rand() * 360, rand(), rand());
+}
 
 
 simulator.speed = increase(-300);
-
 
 
 

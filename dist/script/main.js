@@ -4305,12 +4305,82 @@ class Color {
         this.blue = b;
         this.alpha = a;
     }
+    get hue() {
+        const R = this.red / 255;
+        const G = this.green / 255;
+        const B = this.blue / 255;
+        const max = Math.max(R, G, B);
+        const min = Math.min(R, G, B);
+        let h;
+        if (max === min)
+            h = 0;
+        else if (max === G)
+            h = 60 * (0 + (G - B) / (max - min));
+        else if (max === G)
+            h = 60 * (2 + (B - R) / (max - min));
+        else if (max === B)
+            h = 60 * (4 + (R - G) / (max - min));
+        return h < 0 ? h + 360 : h;
+    }
+    get saturation() {
+        const max = Math.max(this.red, this.green, this.blue) / 255;
+        const min = Math.min(this.red, this.blue, this.green) / 255;
+        if (max === 0)
+            return 0;
+        else if (min == 1)
+            return 0;
+        return (max - min) / (1 - Math.abs(max + min - 1));
+    }
+    get lightness() {
+        const max = Math.max(this.red, this.green, this.blue) / 255;
+        const min = Math.min(this.red, this.blue, this.green) / 255;
+        return (max + min) / 2;
+    }
+    set hue(value) {
+        this.setHSL(value, this.saturation, this.lightness);
+    }
+    set saturation(value) {
+        this.setHSL(this.hue, value, this.lightness);
+    }
+    set lightness(value) {
+        this.setHSL(this.hue, this.saturation, value);
+    }
     static add(a, b) {
         const t = b.alpha;
         return new Color((1 - t) * a.red + t * b.red, (1 - t) * a.green + t * b.green, (1 - t) * a.blue + t * b.blue, 1 - (1 - a.alpha) * (1 - b.alpha));
     }
     static blend(a, b, t) {
         return new Color((1 - t) * a.red + t * b.red, (1 - t) * a.green + t * b.green, (1 - t) * a.blue + t * b.blue, 1);
+    }
+    static fromHSL(h, s, l) {
+        return new Color(0, 0, 0, 1).setHSL(h, s, l);
+    }
+    setHSL(h, s, l) {
+        const chroma = (1 - Math.abs(2 * l - 1)) * s;
+        if (isNaN(h)) {
+            this.red = this.green = this.blue = 0;
+            return this;
+        }
+        h = h / 60;
+        const x = chroma * (1 - Math.abs(h % 2 - 1));
+        let color = [0, 0, 0];
+        if (0 <= h && h <= 1)
+            color = [chroma, x, 0];
+        else if (h <= 2)
+            color = [x, chroma, 0];
+        else if (h <= 3)
+            color = [0, chroma, x];
+        else if (h <= 4)
+            color = [0, x, chroma];
+        else if (h <= 5)
+            color = [x, 0, chroma];
+        else if (h <= 6)
+            color = [chroma, 0, x];
+        let m = l - chroma / 2;
+        this.red = Math.floor((color[0] + m) * 255);
+        this.green = Math.floor((color[1] + m) * 255);
+        this.blue = Math.floor((color[2] + m) * 255);
+        return this;
     }
     toString() {
         return `rgba(${this.red},${this.green},${this.blue},${this.alpha})`;
@@ -4388,8 +4458,11 @@ let simulator = new simulator_1.ParticleSimulator();
 particleSystem.emitter = emitter;
 particleSystem.simulator = simulator;
 emitter.direction = emitter_1.randomAngle(-180, 180);
-emitter.speed = simulator_1.constantValue(300);
-emitter.size = emitter_1.randomInRange(1, 10);
+emitter.speed = emitter_1.randomInRange(100, 400);
+emitter.size = emitter_1.randomInRange(1, 5);
+emitter.color = (p, rand) => {
+    return lib_1.Color.fromHSL(rand() * 360, rand(), rand());
+};
 simulator.speed = simulator_1.increase(-300);
 // UI
 let fpsBuffer = new lib_1.LoopList(30);
