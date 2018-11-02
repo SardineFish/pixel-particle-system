@@ -1185,6 +1185,73 @@ module.exports = function(module) {
 
 /***/ }),
 
+/***/ "./src/emitter.ts":
+/*!************************!*\
+  !*** ./src/emitter.ts ***!
+  \************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const math_1 = __webpack_require__(/*! ./math */ "./src/math.ts");
+const particle_1 = __webpack_require__(/*! ./particle */ "./src/particle.ts");
+const lib_1 = __webpack_require__(/*! ./lib */ "./src/lib.ts");
+const simulator_1 = __webpack_require__(/*! ./simulator */ "./src/simulator.ts");
+class ParticleEmitter {
+    constructor(rand) {
+        this.acceleration = simulator_1.constantValue(math_1.Vector2.zero);
+        this.position = simulator_1.constantValue(math_1.Vector2.zero);
+        this.size = simulator_1.constantValue(5);
+        this.speed = simulator_1.constantValue(100);
+        this.direction = randomAngle(-180, 180);
+        this.color = simulator_1.constantValue(new lib_1.Color(0, 0, 0, 1));
+        this.rand = rand;
+    }
+    emit(position) {
+        let p = new particle_1.Particle();
+        p.size = this.size(p, this.rand);
+        p.position = math_1.plus(this.position(p, this.rand), position);
+        p.direction = this.direction(p, this.rand);
+        p.speed = this.speed(p, this.rand);
+        p.acceleration = this.acceleration(p, this.rand);
+        p.color = this.color(p, this.rand);
+        p.lifeTime = 0;
+        return p;
+    }
+}
+exports.ParticleEmitter = ParticleEmitter;
+function randomInRange(from, to) {
+    const range = new math_1.Range(from, to);
+    return (p, rand) => range.interpolate(rand());
+}
+exports.randomInRange = randomInRange;
+function randomAngle(fromDeg, toDeg, baseDir = new math_1.Vector2(0, -1)) {
+    const range = new math_1.Range(fromDeg, toDeg);
+    return (p, rand) => math_1.rotateDeg(baseDir, range.interpolate(rand()));
+}
+exports.randomAngle = randomAngle;
+function circleEmitter(radius) {
+    return (p, rand) => {
+        let l = Math.sqrt(rand()) * radius;
+        let ang = rand() * Math.PI * 2;
+        return math_1.vec2(l * Math.cos(ang), l * Math.sin(ang));
+    };
+}
+exports.circleEmitter = circleEmitter;
+function boxEmitter(halfSize) {
+    return (p, rand) => math_1.vec2(halfSize * (rand() * 2 - 1), halfSize * (rand() * 2 - 1));
+}
+exports.boxEmitter = boxEmitter;
+function lineEmitter(halfLength) {
+    return (p, rand) => math_1.vec2(halfLength * (rand() * 2 - 1), 0);
+}
+exports.lineEmitter = lineEmitter;
+
+
+/***/ }),
+
 /***/ "./src/lib.ts":
 /*!********************!*\
   !*** ./src/lib.ts ***!
@@ -1231,6 +1298,11 @@ class SetList extends Array {
     remove(element) {
         return this.removeAt(this.indexOf(element));
     }
+    clear() {
+        for (let i = 0; i < this.length; i++)
+            delete this[i];
+        this.length = 0;
+    }
     insert(element, idx = this.length) {
         if (idx < this.length) {
             let t = this[idx];
@@ -1258,21 +1330,32 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const render_1 = __webpack_require__(/*! ./render */ "./src/render.ts");
-const lib_1 = __webpack_require__(/*! ./lib */ "./src/lib.ts");
 const particle_1 = __webpack_require__(/*! ./particle */ "./src/particle.ts");
 const seedrandom_1 = __importDefault(__webpack_require__(/*! seedrandom */ "./node_modules/seedrandom/index.js"));
 const math_1 = __webpack_require__(/*! ./math */ "./src/math.ts");
+const simulator_1 = __webpack_require__(/*! ./simulator */ "./src/simulator.ts");
+const emitter_1 = __webpack_require__(/*! ./emitter */ "./src/emitter.ts");
 const $ = (selector) => document.querySelector(selector);
 const rand = seedrandom_1.default("233333");
-let renderer = new render_1.ParticleRenderer($("#canvas-preview"));
-renderer.start();
-let particles = new lib_1.SetList();
-window.renderer = renderer;
 let particleSystem = new particle_1.ParticleSystem(rand);
+let emitter = new emitter_1.ParticleEmitter(rand);
+let simulator = new simulator_1.ParticleSimulator();
+particleSystem.emitter = emitter;
+particleSystem.simulator = simulator;
+emitter.direction = emitter_1.randomAngle(-180, 180);
+emitter.speed = simulator_1.constantValue(300);
+emitter.size = emitter_1.randomInRange(1, 10);
+simulator.speed = simulator_1.increase(-300);
+// UI
+let renderer = new render_1.ParticleRenderer($("#canvas-preview"));
+window.renderer = renderer;
+renderer.start();
 renderer.onUpdate = (dt) => {
     particleSystem.update(dt);
     renderer.clear();
     renderer.render(particleSystem.particles);
+    $("#particles-count").innerText = particleSystem.particles.length.toString();
+    $("#fps").innerText = Math.round(1 / dt).toString();
 };
 let bound = renderer.canvas.getBoundingClientRect();
 let style = getComputedStyle(renderer.canvas);
@@ -1289,7 +1372,10 @@ renderer.canvas.addEventListener("mouseup", (e) => {
 renderer.canvas.addEventListener("mousemove", (e) => {
     particleSystem.position = math_1.vec2(e.clientX - clientOffset.x, e.clientY - clientOffset.y);
 });
-$("#button-stop").onclick = e => renderer.stop();
+$("#button-stop").onclick = e => {
+    particleSystem.particles.clear();
+    particleSystem.endEmit();
+};
 
 
 /***/ }),
@@ -1315,12 +1401,28 @@ class Vector2 extends Array {
     set x(value) { this[0] = value; }
     get y() { return this[1]; }
     set y(value) { this[1] = value; }
+    static get zero() { return new Vector2(0, 0); }
     get normalized() {
         let l = Math.hypot(this.x, this.y);
         return new Vector2(this.x / l, this.y / l);
     }
     get magnitude() {
         return Math.hypot(this.x, this.y);
+    }
+    plus(v) {
+        this.x += v.x;
+        this.y += v.y;
+        return this;
+    }
+    minus(v) {
+        this.x += v.x;
+        this.y += v.y;
+        return this;
+    }
+    scale(k) {
+        this.x *= k;
+        this.y *= k;
+        return this;
     }
 }
 exports.Vector2 = Vector2;
@@ -1406,6 +1508,14 @@ function rotateRad(v, rad) {
     return new Vector2(v.x * cos - v.y * sin, v.x * sin + v.y * cos);
 }
 exports.rotateRad = rotateRad;
+function degOfVector(v) {
+    return Math.atan2(v.y, v.x) * 180 / Math.PI;
+}
+exports.degOfVector = degOfVector;
+function radOfVector(v) {
+    return Math.atan2(v.y, v.x);
+}
+exports.radOfVector = radOfVector;
 function cross(u, v) {
     return u.x * v.y - u.y * v.x;
 }
@@ -1482,6 +1592,13 @@ class Range extends Vector2 {
     }
 }
 exports.Range = Range;
+exports.interpolate = {
+    linear: (t) => t,
+    sqr: (t) => t * t,
+    sqrt: (t) => Math.sqrt(t),
+    cosDec: (t) => (Math.cos(t * Math.PI) + 1) / 2,
+    cosInc: (t) => (-Math.cos(t * Math.PI) + 1) / 2,
+};
 
 
 /***/ }),
@@ -1495,9 +1612,14 @@ exports.Range = Range;
 
 "use strict";
 
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-const math_1 = __webpack_require__(/*! ./math */ "./src/math.ts");
 const lib_1 = __webpack_require__(/*! ./lib */ "./src/lib.ts");
+const seedrandom_1 = __importDefault(__webpack_require__(/*! seedrandom */ "./node_modules/seedrandom/index.js"));
+const emitter_1 = __webpack_require__(/*! ./emitter */ "./src/emitter.ts");
+const simulator_1 = __webpack_require__(/*! ./simulator */ "./src/simulator.ts");
 class Particle {
 }
 exports.Particle = Particle;
@@ -1506,11 +1628,12 @@ class ParticleSystem {
         this.particles = new lib_1.SetList();
         this.duration = 1;
         this.interval = 0.1;
-        this.count = 5;
-        this.emitAngle = 0;
+        this.count = 30;
         this.emitting = false;
         this.time = -1;
         this.nextEmitTime = 0;
+        this.emitter = new emitter_1.ParticleEmitter(seedrandom_1.default());
+        this.simulator = new simulator_1.ParticleSimulator();
         this.rand = rand;
     }
     update(dt) {
@@ -1518,76 +1641,14 @@ class ParticleSystem {
             this.time = 0;
         else
             this.time += dt;
-        if (this.emitting && this.time > this.nextEmitTime) {
-            this.nextEmitTime += this.interval;
+        if (this.emitting && (this.time >= this.nextEmitTime)) {
+            this.nextEmitTime = this.time + this.interval;
             let count = this.count;
             for (let i = 0; i < count; i++) {
-                this.particles.push(this.emit());
+                this.particles.push(this.emitter.emit(this.position));
             }
         }
-        for (let i = 0; i < this.particles.length; i++) {
-            let p = this.particles[i];
-            // Size
-            p.size -= 2;
-            // Destroy
-            if (p.size <= 0) {
-                this.particles.remove(p);
-                i--;
-                continue;
-            }
-            // Velocity
-            p.speed -= 0.1;
-            p.speed = p.speed < 0 ? 0 : p.speed;
-            p.velocity = math_1.scale(p.direction, p.speed);
-            p.velocity = math_1.plus(p.velocity, math_1.scale(p.acceleration, dt));
-            p.position = math_1.plus(p.position, math_1.scale(p.velocity, dt));
-            // Color
-        }
-    }
-    emit() {
-        let p = new Particle;
-        p.lifeTime = 0;
-        p.position = this.emitPosition();
-        p.direction = this.emitDirection();
-        p.speed = this.emitSpeed();
-        p.size = this.emitSize();
-        p.color = this.emitColor();
-        p.acceleration = this.emitAcceleration();
-        return p;
-    }
-    emitPosition() {
-        if (this.emitterType === "circle") {
-            let l = Math.sqrt(this.rand()) * this.emitterSize;
-            let ang = this.rand() * Math.PI * 2;
-            let pos = math_1.vec2(l * Math.cos(ang), l * Math.sin(ang));
-            return math_1.plus(pos, this.position);
-        }
-        else if (this.emitterType === "box") {
-            let pos = math_1.vec2(this.emitterSize * (this.rand() * 2 - 1), this.emitterSize * (this.rand() * 2 - 1));
-            return math_1.plus(pos, this.position);
-        }
-        else if (this.emitterType === "line") {
-            let pos = math_1.vec2(this.emitterSize * (this.rand() * 2 - 1), 0);
-            return math_1.plus(pos, this.position);
-        }
-        return this.position;
-    }
-    emitDirection() {
-        const range = new math_1.Range(0, 360);
-        return math_1.rotateDeg(new math_1.Vector2(0, -1), range.interpolate(this.rand()));
-    }
-    emitSpeed() {
-        return 600;
-    }
-    emitSize() {
-        const range = new math_1.Range(5, 30);
-        return range.interpolate(this.rand());
-    }
-    emitAcceleration() {
-        return new math_1.Vector2(0, 0);
-    }
-    emitColor() {
-        return new lib_1.Color(0, 0, 0, 1);
+        this.simulator.simulate(this.particles, dt);
     }
     startEmit() {
         this.emitting = true;
@@ -1629,13 +1690,13 @@ class ParticleRenderer {
         this.running = false;
     }
     update(delay) {
+        if (this.running)
+            this.frameUpdateId = requestAnimationFrame(t => this.update(t));
         let dt = delay - this.lastUpdateTime;
         this.lastUpdateTime = delay;
         let dtSeconds = dt / 1000;
         if (this.onUpdate)
             this.onUpdate(dtSeconds);
-        if (this.running)
-            this.frameUpdateId = requestAnimationFrame(t => this.update(t));
     }
     clear(bgColor = new lib_1.Color(0, 0, 0, 0)) {
         this.ctx.clearRect(0, 0, this.width, this.height);
@@ -1646,14 +1707,76 @@ class ParticleRenderer {
         const ctx = this.ctx;
         for (let i = 0; i < particles.length; i++) {
             let p = particles[i];
-            ctx.strokeStyle = p.color.toString();
+            ctx.fillStyle = p.color.toString();
             ctx.beginPath();
             ctx.arc(p.position.x, p.position.y, p.size, 0, 2 * Math.PI);
-            ctx.stroke();
+            ctx.fill();
         }
     }
 }
 exports.ParticleRenderer = ParticleRenderer;
+
+
+/***/ }),
+
+/***/ "./src/simulator.ts":
+/*!**************************!*\
+  !*** ./src/simulator.ts ***!
+  \**************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const math_1 = __webpack_require__(/*! ./math */ "./src/math.ts");
+class ParticleSimulator {
+    constructor() {
+        this.size = KeepValue;
+        this.speed = KeepValue;
+        this.velocity = KeepValue;
+        this.direction = KeepValue;
+        this.acceleration = KeepValue;
+        this.color = KeepValue;
+        this.destroy = exports.SizeDestroy;
+    }
+    simulate(particles, dt) {
+        for (let i = 0; i < particles.length; i++) {
+            let p = particles[i];
+            p.lifeTime += dt;
+            // Size editor
+            p.size = this.size(p.size, dt, p);
+            // acceleration editor
+            p.acceleration = this.acceleration(p.acceleration, dt, p);
+            // Get velocity
+            p.velocity = math_1.scale(p.direction, p.speed);
+            // Apply acceleration
+            p.velocity.plus(math_1.scale(p.acceleration, dt));
+            // Velocity editor
+            p.velocity = this.velocity(p.velocity, dt, p);
+            // Speed & direction editor
+            p.velocity = math_1.scale(this.direction(p.velocity.normalized, dt, p), this.speed(p.velocity.magnitude, dt, p));
+            p.speed = p.velocity.magnitude;
+            p.direction = p.velocity.normalized;
+            // Apply velocity
+            p.position = math_1.plus(p.position, math_1.scale(p.velocity, dt));
+            // Color editor
+            p.color = this.color(p.color, dt, p);
+        }
+    }
+}
+exports.ParticleSimulator = ParticleSimulator;
+function KeepValue(t) { return t; }
+exports.KeepValue = KeepValue;
+exports.SizeDestroy = (p) => p.size <= 0;
+function increase(inc) {
+    return (v, t) => v + inc * t;
+}
+exports.increase = increase;
+function constantValue(value) {
+    return () => value;
+}
+exports.constantValue = constantValue;
 
 
 /***/ }),

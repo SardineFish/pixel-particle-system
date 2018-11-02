@@ -15,6 +15,8 @@ export class Vector2 extends Array<number>
     get y(): number { return this[1]; }
     set y(value) { this[1] = value; }
 
+    static get zero() { return new Vector2(0, 0) }
+
     get normalized()
     {
         let l = Math.hypot(this.x, this.y);
@@ -23,6 +25,25 @@ export class Vector2 extends Array<number>
     get magnitude()
     {
         return Math.hypot(this.x, this.y);
+    }
+
+    plus(v: Vector2)
+    {
+        this.x += v.x;
+        this.y += v.y;
+        return this;
+    }
+    minus(v: Vector2)
+    {
+        this.x += v.x;
+        this.y += v.y;
+        return this;
+    }
+    scale(k: number)
+    {
+        this.x *= k;
+        this.y *= k;
+        return this;
     }
 }
 
@@ -134,6 +155,14 @@ export function rotateRad(v: Vector2, rad: number): Vector2
     let sin = Math.sin(rad);
     return new Vector2(v.x * cos - v.y * sin, v.x * sin + v.y * cos);
 }
+export function degOfVector(v: Vector2): number
+{
+    return Math.atan2(v.y, v.x) * 180 / Math.PI;
+}
+export function radOfVector(v: Vector2): number
+{
+    return Math.atan2(v.y, v.x);
+}
 export function cross(u: Vector2, v: Vector2): number
 {
     return u.x * v.y - u.y * v.x;
@@ -232,4 +261,12 @@ export class Range extends Vector2
     {
         return this.from <= n && n <= this.to;
     }
+}
+
+export const interpolate = {
+    linear: (t: number) => t,
+    sqr: (t: number) => t * t,
+    sqrt: (t: number) => Math.sqrt(t),
+    cosDec: (t: number) => (Math.cos(t * Math.PI) + 1) / 2,
+    cosInc: (t: number) => (-Math.cos(t * Math.PI) + 1) / 2,
 }

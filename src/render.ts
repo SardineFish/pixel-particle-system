@@ -30,13 +30,13 @@ export class ParticleRenderer
     }
     update(delay: number)
     {
+        if (this.running)
+            this.frameUpdateId = requestAnimationFrame(t => this.update(t));
         let dt = delay - this.lastUpdateTime;
         this.lastUpdateTime = delay;
         let dtSeconds = dt / 1000;
         if (this.onUpdate)
             this.onUpdate(dtSeconds);
-        if (this.running)
-            this.frameUpdateId = requestAnimationFrame(t => this.update(t));
     }
     clear(bgColor: Color = new Color(0, 0, 0, 0))
     {
@@ -50,10 +50,10 @@ export class ParticleRenderer
         for (let i = 0; i < particles.length; i++)
         {
             let p = particles[i];
-            ctx.strokeStyle = p.color.toString();
+            ctx.fillStyle = p.color.toString();
             ctx.beginPath();
             ctx.arc(p.position.x, p.position.y, p.size, 0, 2 * Math.PI);
-            ctx.stroke();
+            ctx.fill();
         }
     }
 }

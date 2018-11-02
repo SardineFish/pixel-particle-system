@@ -48,3 +48,23 @@ body {
     color: white;
     font-weight: bold;
 }
+
+#particles-count::before {
+    font-size: 1em;
+    content: "Particles: ";
+}
+
+#fps::before {
+    font-size: 1em;
+    content: "fps: ";
+}
+
+#performace > * {
+    margin: 1em;
+}
+
+#performace {
+    margin-top: 1em;
+    user-select: none;
+    cursor: default;
+}

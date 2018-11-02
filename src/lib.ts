@@ -57,6 +57,12 @@ export class SetList<T> extends Array<T>
     {
         return this.removeAt(this.indexOf(element));
     }
+    clear()
+    {
+        for (let i = 0; i < this.length; i++)
+            delete this[i];
+        this.length = 0;
+    }
     insert(element: T, idx: number = this.length)
     {
         if (idx < this.length)
