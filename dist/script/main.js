@@ -4263,6 +4263,13 @@ function randomAngle(fromDeg, toDeg, baseDir = new math_1.Vector2(0, -1)) {
     return (p, rand) => math_1.rotateDeg(baseDir, range.interpolate(rand()));
 }
 exports.randomAngle = randomAngle;
+function randomColor(colorA, colorB) {
+    const rangeH = new math_1.Range(colorA.hue, colorB.hue);
+    const rangeS = new math_1.Range(colorA.saturation, colorB.saturation);
+    const rangeL = new math_1.Range(colorA.lightness, colorB.lightness);
+    return (p, rand) => lib_1.Color.fromHSL(rangeH.interpolate(rand()), rangeS.interpolate(rand()), rangeL.interpolate(rand()));
+}
+exports.randomColor = randomColor;
 function circleEmitter(radius) {
     return (p, rand) => {
         let l = Math.sqrt(rand()) * radius;
@@ -4314,7 +4321,7 @@ class Color {
         let h;
         if (max === min)
             h = 0;
-        else if (max === G)
+        else if (max === R)
             h = 60 * (0 + (G - B) / (max - min));
         else if (max === G)
             h = 60 * (2 + (B - R) / (max - min));
@@ -4459,10 +4466,8 @@ particleSystem.emitter = emitter;
 particleSystem.simulator = simulator;
 emitter.direction = emitter_1.randomAngle(-180, 180);
 emitter.speed = emitter_1.randomInRange(100, 400);
-emitter.size = emitter_1.randomInRange(1, 5);
-emitter.color = (p, rand) => {
-    return lib_1.Color.fromHSL(rand() * 360, rand(), rand());
-};
+emitter.size = emitter_1.randomInRange(1, 20);
+emitter.color = emitter_1.randomColor(new lib_1.Color(105, 37, 42), new lib_1.Color(255, 49, 64));
 simulator.speed = simulator_1.increase(-300);
 // UI
 let fpsBuffer = new lib_1.LoopList(30);

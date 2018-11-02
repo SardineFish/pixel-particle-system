@@ -41,13 +41,18 @@ export function randomInRange(from: number, to: number):ValueGenerator<number>
     const range = new Range(from, to);
     return (p, rand) => range.interpolate(rand()); 
 }
-
 export function randomAngle(fromDeg: number, toDeg: number, baseDir:Vector2 = new Vector2(0,-1)): ValueGenerator<Vector2>
 {
     const range = new Range(fromDeg, toDeg);
     return (p, rand) => rotateDeg(baseDir, range.interpolate(rand()));
 }
-
+export function randomColor(colorA: Color, colorB: Color):ValueGenerator<Color>
+{
+    const rangeH = new Range(colorA.hue, colorB.hue);
+    const rangeS = new Range(colorA.saturation, colorB.saturation);
+    const rangeL = new Range(colorA.lightness, colorB.lightness);
+    return (p, rand) => Color.fromHSL(rangeH.interpolate(rand()), rangeS.interpolate(rand()), rangeL.interpolate(rand()));
+}
 export function circleEmitter(radius: number): ValueGenerator<Vector2>
 {
     return (p, rand) =>

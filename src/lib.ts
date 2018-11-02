@@ -24,7 +24,7 @@ export class Color
         let h;
         if (max === min)
             h= 0;
-        else if (max === G)
+        else if (max === R)
             h = 60 * (0 + (G - B) / (max - min));
         else if (max === G)
             h = 60 * (2 + (B - R) / (max - min));

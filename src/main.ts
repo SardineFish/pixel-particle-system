@@ -4,7 +4,7 @@ import { Particle, ParticleSystem } from "./particle";
 import seedrandom from "seedrandom";
 import { vec2 } from "./math";
 import { ParticleSimulator, constantValue, increase } from "./simulator";
-import { ParticleEmitter, randomAngle, randomInRange } from "./emitter";
+import { ParticleEmitter, randomAngle, randomInRange, randomColor } from "./emitter";
 import linq from "linq";
 
 const $ = (selector: string): HTMLElement => document.querySelector(selector);
@@ -19,11 +19,8 @@ particleSystem.simulator = simulator;
 
 emitter.direction = randomAngle(-180, 180);
 emitter.speed = randomInRange(100, 400);
-emitter.size = randomInRange(1, 5);
-emitter.color = (p, rand) =>
-{
-    return Color.fromHSL(rand() * 360, rand(), rand());
-}
+emitter.size = randomInRange(1, 20);
+emitter.color = randomColor(new Color(105, 37, 42), new Color(255, 49, 64));
 
 
 simulator.speed = increase(-300);
