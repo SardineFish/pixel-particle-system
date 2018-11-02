@@ -121,7 +121,19 @@ export function dot(u: Vector4 | Vector2, v: Vector4 | Vector2): number
             u.w * v.w;
     }
 }
-
+export function rotateDeg(v: Vector2, deg: number): Vector2
+{
+    let rad = deg * Math.PI / 180;
+    let cos = Math.cos(rad);
+    let sin = Math.sin(rad);
+    return new Vector2(v.x * cos - v.y * sin, v.x * sin + v.y * cos);
+}
+export function rotateRad(v: Vector2, rad: number): Vector2
+{
+    let cos = Math.cos(rad);
+    let sin = Math.sin(rad);
+    return new Vector2(v.x * cos - v.y * sin, v.x * sin + v.y * cos);
+}
 export function cross(u: Vector2, v: Vector2): number
 {
     return u.x * v.y - u.y * v.x;
@@ -205,8 +217,11 @@ export class Range extends Vector2
 
     get size()
     {
-        console.log(this[1] - this[0]);
         return this[1] - this[0];
+    }
+    interpolate(t: number): number
+    {
+        return t * this.size + this.from;
     }
     inRange(n: number): boolean
     {

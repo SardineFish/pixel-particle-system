@@ -1228,6 +1228,9 @@ class SetList extends Array {
         this.length--;
         return element;
     }
+    remove(element) {
+        return this.removeAt(this.indexOf(element));
+    }
     insert(element, idx = this.length) {
         if (idx < this.length) {
             let t = this[idx];
@@ -1265,16 +1268,27 @@ let renderer = new render_1.ParticleRenderer($("#canvas-preview"));
 renderer.start();
 let particles = new lib_1.SetList();
 window.renderer = renderer;
+let particleSystem = new particle_1.ParticleSystem(rand);
 renderer.onUpdate = (dt) => {
-    let pos = math_1.vec2(renderer.width * rand(), renderer.height * rand());
-    let p = new particle_1.Particle;
-    p.position = pos;
-    p.color = new lib_1.Color(0, 0, 0, 1);
-    p.size = 10;
-    particles.push(p);
+    particleSystem.update(dt);
     renderer.clear();
-    renderer.render(particles);
+    renderer.render(particleSystem.particles);
 };
+let bound = renderer.canvas.getBoundingClientRect();
+let style = getComputedStyle(renderer.canvas);
+let clientOffset = math_1.vec2(bound.left + parseFloat(style.marginLeft), bound.top + parseFloat(style.marginTop));
+let mouseHold = false;
+renderer.canvas.addEventListener("mousedown", (e) => {
+    mouseHold = true;
+    particleSystem.startEmit();
+});
+renderer.canvas.addEventListener("mouseup", (e) => {
+    mouseHold = false;
+    particleSystem.endEmit();
+});
+renderer.canvas.addEventListener("mousemove", (e) => {
+    particleSystem.position = math_1.vec2(e.clientX - clientOffset.x, e.clientY - clientOffset.y);
+});
 $("#button-stop").onclick = e => renderer.stop();
 
 
@@ -1379,6 +1393,19 @@ function dot(u, v) {
     }
 }
 exports.dot = dot;
+function rotateDeg(v, deg) {
+    let rad = deg * Math.PI / 180;
+    let cos = Math.cos(rad);
+    let sin = Math.sin(rad);
+    return new Vector2(v.x * cos - v.y * sin, v.x * sin + v.y * cos);
+}
+exports.rotateDeg = rotateDeg;
+function rotateRad(v, rad) {
+    let cos = Math.cos(rad);
+    let sin = Math.sin(rad);
+    return new Vector2(v.x * cos - v.y * sin, v.x * sin + v.y * cos);
+}
+exports.rotateRad = rotateRad;
 function cross(u, v) {
     return u.x * v.y - u.y * v.x;
 }
@@ -1442,8 +1469,10 @@ class Range extends Vector2 {
         this[1] = value;
     }
     get size() {
-        console.log(this[1] - this[0]);
         return this[1] - this[0];
+    }
+    interpolate(t) {
+        return t * this.size + this.from;
     }
     inRange(n) {
         return this.from < n && n < this.to;
@@ -1467,15 +1496,104 @@ exports.Range = Range;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+const math_1 = __webpack_require__(/*! ./math */ "./src/math.ts");
 const lib_1 = __webpack_require__(/*! ./lib */ "./src/lib.ts");
 class Particle {
 }
 exports.Particle = Particle;
 class ParticleSystem {
-    constructor() {
+    constructor(rand) {
         this.particles = new lib_1.SetList();
         this.duration = 1;
         this.interval = 0.1;
+        this.count = 5;
+        this.emitAngle = 0;
+        this.emitting = false;
+        this.time = -1;
+        this.nextEmitTime = 0;
+        this.rand = rand;
+    }
+    update(dt) {
+        if (this.time < 0)
+            this.time = 0;
+        else
+            this.time += dt;
+        if (this.emitting && this.time > this.nextEmitTime) {
+            this.nextEmitTime += this.interval;
+            let count = this.count;
+            for (let i = 0; i < count; i++) {
+                this.particles.push(this.emit());
+            }
+        }
+        for (let i = 0; i < this.particles.length; i++) {
+            let p = this.particles[i];
+            // Size
+            p.size -= 2;
+            // Destroy
+            if (p.size <= 0) {
+                this.particles.remove(p);
+                i--;
+                continue;
+            }
+            // Velocity
+            p.speed -= 0.1;
+            p.speed = p.speed < 0 ? 0 : p.speed;
+            p.velocity = math_1.scale(p.direction, p.speed);
+            p.velocity = math_1.plus(p.velocity, math_1.scale(p.acceleration, dt));
+            p.position = math_1.plus(p.position, math_1.scale(p.velocity, dt));
+            // Color
+        }
+    }
+    emit() {
+        let p = new Particle;
+        p.lifeTime = 0;
+        p.position = this.emitPosition();
+        p.direction = this.emitDirection();
+        p.speed = this.emitSpeed();
+        p.size = this.emitSize();
+        p.color = this.emitColor();
+        p.acceleration = this.emitAcceleration();
+        return p;
+    }
+    emitPosition() {
+        if (this.emitterType === "circle") {
+            let l = Math.sqrt(this.rand()) * this.emitterSize;
+            let ang = this.rand() * Math.PI * 2;
+            let pos = math_1.vec2(l * Math.cos(ang), l * Math.sin(ang));
+            return math_1.plus(pos, this.position);
+        }
+        else if (this.emitterType === "box") {
+            let pos = math_1.vec2(this.emitterSize * (this.rand() * 2 - 1), this.emitterSize * (this.rand() * 2 - 1));
+            return math_1.plus(pos, this.position);
+        }
+        else if (this.emitterType === "line") {
+            let pos = math_1.vec2(this.emitterSize * (this.rand() * 2 - 1), 0);
+            return math_1.plus(pos, this.position);
+        }
+        return this.position;
+    }
+    emitDirection() {
+        const range = new math_1.Range(0, 360);
+        return math_1.rotateDeg(new math_1.Vector2(0, -1), range.interpolate(this.rand()));
+    }
+    emitSpeed() {
+        return 600;
+    }
+    emitSize() {
+        const range = new math_1.Range(5, 30);
+        return range.interpolate(this.rand());
+    }
+    emitAcceleration() {
+        return new math_1.Vector2(0, 0);
+    }
+    emitColor() {
+        return new lib_1.Color(0, 0, 0, 1);
+    }
+    startEmit() {
+        this.emitting = true;
+    }
+    endEmit() {
+        this.emitting = false;
     }
 }
 exports.ParticleSystem = ParticleSystem;

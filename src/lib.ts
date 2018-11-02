@@ -53,7 +53,10 @@ export class SetList<T> extends Array<T>
         this.length--;
         return element;
     }
-
+    remove(element: T)
+    {
+        return this.removeAt(this.indexOf(element));
+    }
     insert(element: T, idx: number = this.length)
     {
         if (idx < this.length)
