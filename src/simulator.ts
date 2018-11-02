@@ -35,11 +35,12 @@ export class ParticleSimulator
             // Velocity editor
             p.velocity = this.velocity(p.velocity, dt, p); 
 
+            p.direction = this.direction(p.velocity.normalized, dt, p)
+            p.speed = this.speed(p.velocity.magnitude, dt, p)
+            p.speed = p.speed < 0 ? 0 : p.speed;
             // Speed & direction editor
-            p.velocity = scale(this.direction(p.velocity.normalized, dt, p), this.speed(p.velocity.magnitude, dt, p)); 
+            p.velocity = scale(p.direction, p.speed); 
 
-            p.speed = p.velocity.magnitude;
-            p.direction = p.velocity.normalized;
             // Apply velocity
             p.position= plus(p.position,scale(p.velocity, dt)); 
 

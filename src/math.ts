@@ -20,6 +20,8 @@ export class Vector2 extends Array<number>
     get normalized()
     {
         let l = Math.hypot(this.x, this.y);
+        if (l === 0)
+            return new Vector2(0, 0);
         return new Vector2(this.x / l, this.y / l);
     }
     get magnitude()

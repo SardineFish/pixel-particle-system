@@ -1404,6 +1404,8 @@ class Vector2 extends Array {
     static get zero() { return new Vector2(0, 0); }
     get normalized() {
         let l = Math.hypot(this.x, this.y);
+        if (l === 0)
+            return new Vector2(0, 0);
         return new Vector2(this.x / l, this.y / l);
     }
     get magnitude() {
@@ -1754,10 +1756,11 @@ class ParticleSimulator {
             p.velocity.plus(math_1.scale(p.acceleration, dt));
             // Velocity editor
             p.velocity = this.velocity(p.velocity, dt, p);
+            p.direction = this.direction(p.velocity.normalized, dt, p);
+            p.speed = this.speed(p.velocity.magnitude, dt, p);
+            p.speed = p.speed < 0 ? 0 : p.speed;
             // Speed & direction editor
-            p.velocity = math_1.scale(this.direction(p.velocity.normalized, dt, p), this.speed(p.velocity.magnitude, dt, p));
-            p.speed = p.velocity.magnitude;
-            p.direction = p.velocity.normalized;
+            p.velocity = math_1.scale(p.direction, p.speed);
             // Apply velocity
             p.position = math_1.plus(p.position, math_1.scale(p.velocity, dt));
             // Color editor
