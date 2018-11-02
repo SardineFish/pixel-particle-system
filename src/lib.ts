@@ -37,7 +37,7 @@ export class Color
 
     toString()
     {
-        return `rgba(${this.red}, ${this.green}, ${this.blue}, ${this.alpha})`;
+        return `rgba(${this.red},${this.green},${this.blue},${this.alpha})`;
     }
     toVector4(): Vector4
     {

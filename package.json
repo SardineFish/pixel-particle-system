@@ -24,6 +24,7 @@
     "webpack-cli": "^3.1.2"
   },
   "dependencies": {
+    "@types/seedrandom": "^2.4.27",
     "seedrandom": "^2.4.4"
   }
 }
