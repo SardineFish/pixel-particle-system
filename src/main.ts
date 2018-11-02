@@ -1,10 +1,11 @@
 import { ParticleRenderer } from "./render";
-import { SetList, Color } from "./lib";
+import { SetList, Color, LoopList } from "./lib";
 import { Particle, ParticleSystem } from "./particle";
 import seedrandom from "seedrandom";
 import { vec2 } from "./math";
 import { ParticleSimulator, constantValue, increase } from "./simulator";
 import { ParticleEmitter, randomAngle, randomInRange } from "./emitter";
+import linq from "linq";
 
 const $ = (selector: string): HTMLElement => document.querySelector(selector);
 const rand = seedrandom("233333");
@@ -59,7 +60,7 @@ simulator.speed = increase(-300);
 
 
 // UI
-
+let fpsBuffer = new LoopList(30);
 let renderer = new ParticleRenderer($("#canvas-preview") as HTMLCanvasElement);
 (window as any).renderer = renderer;
 renderer.start();
@@ -70,8 +71,10 @@ renderer.onUpdate = (dt) =>
     renderer.render(particleSystem.particles);
 
 
+    // Performace
     $("#particles-count").innerText = particleSystem.particles.length.toString();
-    $("#fps").innerText = Math.round(1 / dt).toString();
+    fpsBuffer.insert(1 / dt);
+    $("#fps").innerText = Math.round(linq.from(fpsBuffer).sum() / fpsBuffer.length).toString();
 };
 let bound = renderer.canvas.getBoundingClientRect();
 let style = getComputedStyle(renderer.canvas);

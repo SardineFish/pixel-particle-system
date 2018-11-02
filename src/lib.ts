@@ -73,3 +73,19 @@ export class SetList<T> extends Array<T>
         }
     }
 }
+
+export class LoopList<T> extends Array<T>
+{
+    private idx: number = -1;
+    constructor(size: number)
+    {
+        super();
+        this.length = size;
+    }
+
+    insert(element: T)
+    {
+        this.idx = (this.idx + 1) % this.length;
+        this[this.idx] = element;
+    }
+}
