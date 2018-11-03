@@ -8,6 +8,32 @@ export class ParticleRenderer
     frameUpdateId: number;
     running: boolean;
     lastUpdateTime: number;
+    composite: "source-over" |
+        "source-in" |
+        "source-out" |
+        "source-atop" |
+        "destination-over" |
+        "destination-in" |
+        "destination-out" |
+        "destination-atop" |
+        "lighter" |
+        "copy" |
+        "xor" |
+        "multiply" |
+        "screen" |
+        "overlay" |
+        "darken" |
+        "lighten" |
+        "color-dodge" |
+        "color-burn" |
+        "hard-light" |
+        "soft-light" |
+        "difference" |
+        "exclusion" |
+        "hue" |
+        "saturation" |
+        "color" |
+        "luminosity" = "source-over";
     onUpdate: (dt: number) => void;
     get width() { return this.canvas.width }
     get height() { return this.canvas.height }
@@ -38,15 +64,17 @@ export class ParticleRenderer
         if (this.onUpdate)
             this.onUpdate(dtSeconds);
     }
-    clear(bgColor: Color = new Color(0, 0, 0, 0))
+    clear(bgColor: Color = new Color(0, 0, 0, 0), clear = true)
     {
-        this.ctx.clearRect(0, 0, this.width, this.height);
+        if (clear)
+            this.ctx.clearRect(0, 0, this.width, this.height);
         this.ctx.fillStyle = bgColor.toString();
         this.ctx.fillRect(0, 0, this.width, this.height);
     }
     render(particles: Particle[])
     {
         const ctx = this.ctx;
+        ctx.globalCompositeOperation = this.composite;
         for (let i = 0; i < particles.length; i++)
         {
             let p = particles[i];

@@ -3,7 +3,7 @@ import { SetList, Color, LoopList } from "./lib";
 import { Particle, ParticleSystem } from "./particle";
 import seedrandom from "seedrandom";
 import { vec2 } from "./math";
-import { ParticleSimulator, constantValue, increase } from "./simulator";
+import { ParticleSimulator, constantValue, increase, lifeTimeColor, deathColor } from "./simulator";
 import { ParticleEmitter, randomAngle, randomInRange, randomColor } from "./emitter";
 import linq from "linq";
 
@@ -18,15 +18,14 @@ particleSystem.simulator = simulator;
 
 
 emitter.direction = randomAngle(-180, 180);
-emitter.speed = randomInRange(100, 400);
-emitter.size = randomInRange(1, 20);
+emitter.speed = randomInRange(400, 800);
+emitter.size = randomInRange(5, 10);
 emitter.color = randomColor(new Color(105, 37, 42), new Color(255, 49, 64));
 
 
-simulator.speed = increase(-300);
-
-
-
+simulator.speed = increase(-1600);
+//simulator.color = deathColor(new Color(105, 37, 42), .3);
+simulator.size = increase(-20);
 
 
 
@@ -62,9 +61,10 @@ simulator.speed = increase(-300);
 // UI
 let fpsBuffer = new LoopList(30);
 let downScaleRenderer = new DownScaleRenderer($("#canvas-render") as HTMLCanvasElement);
-downScaleRenderer.scaleRate = 8;
+downScaleRenderer.scaleRate = 4;
 let renderer = new ParticleRenderer($("#canvas-preview") as HTMLCanvasElement);
 (window as any).renderer = renderer;
+renderer.composite = "color";
 renderer.start();
 renderer.onUpdate = (dt) =>
 {
@@ -99,6 +99,7 @@ renderer.canvas.addEventListener("mousemove", (e) =>
 });
 $("#button-stop").onclick = e =>
 {
+    renderer.clear();
     particleSystem.particles.clear();
     particleSystem.endEmit();
 }

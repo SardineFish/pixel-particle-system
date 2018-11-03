@@ -4363,6 +4363,7 @@ class Color {
         return new Color(0, 0, 0, 1).setHSL(h, s, l);
     }
     setHSL(h, s, l) {
+        h = h < 0 ? h + 360 : h;
         const chroma = (1 - Math.abs(2 * l - 1)) * s;
         if (isNaN(h)) {
             this.red = this.green = this.blue = 0;
@@ -4388,6 +4389,38 @@ class Color {
         this.green = Math.floor((color[1] + m) * 255);
         this.blue = Math.floor((color[2] + m) * 255);
         return this;
+    }
+    static fromString(str) {
+        str = str.replace(new RegExp(/\s/g), "");
+        var reg = new RegExp("#[0-9a-fA-F]{6}");
+        if (reg.test(str)) {
+            str = str.replace("#", "");
+            var strR = str.charAt(0) + str.charAt(1);
+            var strG = str.charAt(2) + str.charAt(3);
+            var strB = str.charAt(4) + str.charAt(5);
+            var r = parseInt(strR, 16);
+            var g = parseInt(strG, 16);
+            var b = parseInt(strB, 16);
+            return new Color(r, g, b, 1.0);
+        }
+        reg = new RegExp("rgb\\(([0-9]+(\\.[0-9]+){0,1}),([0-9]+(\\.[0-9]+){0,1}),([0-9]+(\\.[0-9]+){0,1})\\)");
+        if (reg.test(str)) {
+            var colorArray = str.replace("rgb(", "").replace(")", "").split(",");
+            var r = parseInt(colorArray[0]);
+            var g = parseInt(colorArray[1]);
+            var b = parseInt(colorArray[2]);
+            var a = 1.00;
+            return new Color(r, g, b, a);
+        }
+        reg = new RegExp("rgba\\(([0-9]+(\\.[0-9]+){0,1}),([0-9]+(\\.[0-9]+){0,1}),([0-9]+(\\.[0-9]+){0,1}),([0-9]+(\\.[0-9]+){0,1})\\)");
+        if (reg.test(str)) {
+            var colorArray = str.replace("rgba(", "").replace(")", "").split(",");
+            var r = parseInt(colorArray[0]);
+            var g = parseInt(colorArray[1]);
+            var b = parseInt(colorArray[2]);
+            var a = parseFloat(colorArray[3]);
+            return new Color(r, g, b, a);
+        }
     }
     toString() {
         return `rgba(${this.red},${this.green},${this.blue},${this.alpha})`;
@@ -4465,16 +4498,19 @@ let simulator = new simulator_1.ParticleSimulator();
 particleSystem.emitter = emitter;
 particleSystem.simulator = simulator;
 emitter.direction = emitter_1.randomAngle(-180, 180);
-emitter.speed = emitter_1.randomInRange(100, 400);
-emitter.size = emitter_1.randomInRange(1, 20);
+emitter.speed = emitter_1.randomInRange(400, 800);
+emitter.size = emitter_1.randomInRange(5, 10);
 emitter.color = emitter_1.randomColor(new lib_1.Color(105, 37, 42), new lib_1.Color(255, 49, 64));
-simulator.speed = simulator_1.increase(-300);
+simulator.speed = simulator_1.increase(-1600);
+//simulator.color = deathColor(new Color(105, 37, 42), .3);
+simulator.size = simulator_1.increase(-20);
 // UI
 let fpsBuffer = new lib_1.LoopList(30);
 let downScaleRenderer = new render_1.DownScaleRenderer($("#canvas-render"));
-downScaleRenderer.scaleRate = 8;
+downScaleRenderer.scaleRate = 4;
 let renderer = new render_1.ParticleRenderer($("#canvas-preview"));
 window.renderer = renderer;
+renderer.composite = "color";
 renderer.start();
 renderer.onUpdate = (dt) => {
     particleSystem.update(dt);
@@ -4502,6 +4538,7 @@ renderer.canvas.addEventListener("mousemove", (e) => {
     particleSystem.position = math_1.vec2(e.clientX - clientOffset.x, e.clientY - clientOffset.y);
 });
 $("#button-stop").onclick = e => {
+    renderer.clear();
     particleSystem.particles.clear();
     particleSystem.endEmit();
 };
@@ -4730,6 +4767,14 @@ exports.interpolate = {
     cosDec: (t) => (Math.cos(t * Math.PI) + 1) / 2,
     cosInc: (t) => (-Math.cos(t * Math.PI) + 1) / 2,
 };
+function clamp01(t) {
+    if (t < 0)
+        return 0;
+    if (t > 1)
+        return 1;
+    return t;
+}
+exports.clamp01 = clamp01;
 
 
 /***/ }),
@@ -4805,14 +4850,15 @@ exports.ParticleSystem = ParticleSystem;
 Object.defineProperty(exports, "__esModule", { value: true });
 const lib_1 = __webpack_require__(/*! ./lib */ "./src/lib.ts");
 class ParticleRenderer {
+    constructor(element) {
+        this.composite = "source-over";
+        this.canvas = element;
+        this.ctx = this.canvas.getContext("2d");
+    }
     get width() { return this.canvas.width; }
     get height() { return this.canvas.height; }
     set width(value) { this.canvas.width = value; }
     set height(value) { this.canvas.height = value; }
-    constructor(element) {
-        this.canvas = element;
-        this.ctx = this.canvas.getContext("2d");
-    }
     start() {
         this.running = true;
         this.frameUpdateId = requestAnimationFrame((t) => this.update(t));
@@ -4829,13 +4875,15 @@ class ParticleRenderer {
         if (this.onUpdate)
             this.onUpdate(dtSeconds);
     }
-    clear(bgColor = new lib_1.Color(0, 0, 0, 0)) {
-        this.ctx.clearRect(0, 0, this.width, this.height);
+    clear(bgColor = new lib_1.Color(0, 0, 0, 0), clear = true) {
+        if (clear)
+            this.ctx.clearRect(0, 0, this.width, this.height);
         this.ctx.fillStyle = bgColor.toString();
         this.ctx.fillRect(0, 0, this.width, this.height);
     }
     render(particles) {
         const ctx = this.ctx;
+        ctx.globalCompositeOperation = this.composite;
         for (let i = 0; i < particles.length; i++) {
             let p = particles[i];
             ctx.fillStyle = p.color.toString();
@@ -4887,6 +4935,7 @@ exports.DownScaleRenderer = DownScaleRenderer;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const math_1 = __webpack_require__(/*! ./math */ "./src/math.ts");
+const lib_1 = __webpack_require__(/*! ./lib */ "./src/lib.ts");
 class ParticleSimulator {
     constructor() {
         this.size = KeepValue;
@@ -4920,6 +4969,8 @@ class ParticleSimulator {
             p.position = math_1.plus(p.position, math_1.scale(p.velocity, dt));
             // Color editor
             p.color = this.color(p.color, dt, p);
+            if (this.destroy(p))
+                particles.removeAt(i--);
         }
     }
 }
@@ -4935,6 +4986,27 @@ function constantValue(value) {
     return () => value;
 }
 exports.constantValue = constantValue;
+function lifeTimeColor(birth, death, lifeTime) {
+    let rangeH = new math_1.Range(birth.hue, death.hue);
+    let rangeS = new math_1.Range(birth.saturation, death.saturation);
+    let rangeL = new math_1.Range(birth.lightness, death.lightness);
+    if (rangeH.size > 180)
+        rangeH.to -= 360;
+    else if (rangeH.size < -180)
+        rangeH.from += 360;
+    return (color, dt, p) => lib_1.Color.fromHSL(rangeH.interpolate(math_1.clamp01(p.lifeTime / lifeTime)), rangeS.interpolate(math_1.clamp01(p.lifeTime / lifeTime)), rangeL.interpolate(math_1.clamp01(p.lifeTime / lifeTime)));
+}
+exports.lifeTimeColor = lifeTimeColor;
+function deathColor(deathColor, deathTime) {
+    return (color, dt, p) => {
+        let restTime = deathTime - p.lifeTime;
+        let rangeH = new math_1.Range(color.hue, deathColor.hue);
+        let rangeS = new math_1.Range(color.saturation, deathColor.saturation);
+        let rangeL = new math_1.Range(color.lightness, deathColor.lightness);
+        return lib_1.Color.fromHSL(rangeH.interpolate(math_1.clamp01(dt / restTime)), rangeS.interpolate(math_1.clamp01(dt / restTime)), rangeL.interpolate(math_1.clamp01(dt / restTime)));
+    };
+}
+exports.deathColor = deathColor;
 
 
 /***/ }),

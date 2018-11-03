@@ -272,3 +272,12 @@ export const interpolate = {
     cosDec: (t: number) => (Math.cos(t * Math.PI) + 1) / 2,
     cosInc: (t: number) => (-Math.cos(t * Math.PI) + 1) / 2,
 }
+
+export function clamp01(t: number)
+{
+    if (t < 0)
+        return 0;
+    if (t > 1)
+        return 1;
+    return t;
+}

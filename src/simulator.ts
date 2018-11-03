@@ -1,5 +1,5 @@
 import { Particle } from "./particle";
-import { Vector2, scale, plus } from "./math";
+import { Vector2, scale, plus, Range, clamp01 } from "./math";
 import { Color, SetList } from "./lib";
 
 type ValueSimulator<T=number | Vector2 | Color> = (value: T, dt: number, p: Particle) => T;
@@ -46,6 +46,9 @@ export class ParticleSimulator
 
             // Color editor
             p.color = this.color(p.color, dt, p); 
+
+            if (this.destroy(p))
+                particles.removeAt(i--);
         }
     }
 }
@@ -60,4 +63,35 @@ export function increase(inc: number): ValueSimulator<number>
 export function constantValue<T>(value: T): () => T
 {
     return () => value;
+}
+
+export function lifeTimeColor(birth: Color, death: Color, lifeTime: number): ValueSimulator<Color>
+{
+    let rangeH = new Range(birth.hue, death.hue);
+    let rangeS = new Range(birth.saturation, death.saturation);
+    let rangeL = new Range(birth.lightness, death.lightness);
+    if (rangeH.size > 180)
+        rangeH.to -= 360;
+    else if (rangeH.size < -180)
+        rangeH.from += 360;
+    return (color, dt, p) => Color.fromHSL(
+        rangeH.interpolate(clamp01(p.lifeTime / lifeTime)),
+        rangeS.interpolate(clamp01(p.lifeTime / lifeTime)),
+        rangeL.interpolate(clamp01(p.lifeTime / lifeTime)));
+}
+
+export function deathColor(deathColor: Color, deathTime: number): ValueSimulator<Color>
+{
+    return (color, dt, p) =>
+    {
+        let restTime = deathTime - p.lifeTime;
+
+        let rangeH = new Range(color.hue, deathColor.hue);
+        let rangeS = new Range(color.saturation, deathColor.saturation);
+        let rangeL = new Range(color.lightness, deathColor.lightness);
+        return Color.fromHSL(
+            rangeH.interpolate(clamp01(dt / restTime)),
+            rangeS.interpolate(clamp01(dt / restTime)),
+            rangeL.interpolate(clamp01(dt / restTime)));
+    }
 }

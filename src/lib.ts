@@ -90,6 +90,7 @@ export class Color
 
     setHSL(h: number, s: number, l: number)
     {
+        h = h < 0 ? h + 360 : h;
         const chroma = (1 - Math.abs(2 * l - 1)) * s;
         if (isNaN(h))
         {
@@ -116,6 +117,44 @@ export class Color
         this.green = Math.floor((color[1] + m) * 255);
         this.blue = Math.floor((color[2] + m) * 255);
         return this;
+    }
+
+    static fromString(str:string):Color
+    {
+        str = str.replace(new RegExp(/\s/g), "");
+
+        var reg = new RegExp("#[0-9a-fA-F]{6}");
+        if (reg.test(str))
+        {
+            str = str.replace("#", "");
+            var strR = str.charAt(0) + str.charAt(1);
+            var strG = str.charAt(2) + str.charAt(3);
+            var strB = str.charAt(4) + str.charAt(5);
+            var r = parseInt(strR, 16);
+            var g = parseInt(strG, 16);
+            var b = parseInt(strB, 16);
+            return new Color(r, g, b, 1.0);
+        }
+        reg = new RegExp("rgb\\(([0-9]+(\\.[0-9]+){0,1}),([0-9]+(\\.[0-9]+){0,1}),([0-9]+(\\.[0-9]+){0,1})\\)");
+        if (reg.test(str))
+        {
+            var colorArray = str.replace("rgb(", "").replace(")", "").split(",");
+            var r = parseInt(colorArray[0]);
+            var g = parseInt(colorArray[1]);
+            var b = parseInt(colorArray[2]);
+            var a = 1.00;
+            return new Color(r, g, b, a);
+        }
+        reg = new RegExp("rgba\\(([0-9]+(\\.[0-9]+){0,1}),([0-9]+(\\.[0-9]+){0,1}),([0-9]+(\\.[0-9]+){0,1}),([0-9]+(\\.[0-9]+){0,1})\\)");
+        if (reg.test(str))
+        {
+            var colorArray = str.replace("rgba(", "").replace(")", "").split(",");
+            var r = parseInt(colorArray[0]);
+            var g = parseInt(colorArray[1]);
+            var b = parseInt(colorArray[2]);
+            var a = parseFloat(colorArray[3]);
+            return new Color(r, g, b, a);
+        }
     }
 
     toString()
