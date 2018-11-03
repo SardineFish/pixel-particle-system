@@ -1,4 +1,4 @@
-import { ParticleRenderer } from "./render";
+import { ParticleRenderer, DownScaleRenderer } from "./render";
 import { SetList, Color, LoopList } from "./lib";
 import { Particle, ParticleSystem } from "./particle";
 import seedrandom from "seedrandom";
@@ -61,6 +61,8 @@ simulator.speed = increase(-300);
 
 // UI
 let fpsBuffer = new LoopList(30);
+let downScaleRenderer = new DownScaleRenderer($("#canvas-render") as HTMLCanvasElement);
+downScaleRenderer.scaleRate = 8;
 let renderer = new ParticleRenderer($("#canvas-preview") as HTMLCanvasElement);
 (window as any).renderer = renderer;
 renderer.start();
@@ -70,6 +72,7 @@ renderer.onUpdate = (dt) =>
     renderer.clear();
     renderer.render(particleSystem.particles);
 
+    downScaleRenderer.render(renderer.canvas);
 
     // Performace
     $("#particles-count").innerText = particleSystem.particles.length.toString();

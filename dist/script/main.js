@@ -4471,6 +4471,8 @@ emitter.color = emitter_1.randomColor(new lib_1.Color(105, 37, 42), new lib_1.Co
 simulator.speed = simulator_1.increase(-300);
 // UI
 let fpsBuffer = new lib_1.LoopList(30);
+let downScaleRenderer = new render_1.DownScaleRenderer($("#canvas-render"));
+downScaleRenderer.scaleRate = 8;
 let renderer = new render_1.ParticleRenderer($("#canvas-preview"));
 window.renderer = renderer;
 renderer.start();
@@ -4478,6 +4480,7 @@ renderer.onUpdate = (dt) => {
     particleSystem.update(dt);
     renderer.clear();
     renderer.render(particleSystem.particles);
+    downScaleRenderer.render(renderer.canvas);
     // Performace
     $("#particles-count").innerText = particleSystem.particles.length.toString();
     fpsBuffer.insert(1 / dt);
@@ -4843,6 +4846,32 @@ class ParticleRenderer {
     }
 }
 exports.ParticleRenderer = ParticleRenderer;
+class DownScaleRenderer {
+    constructor(canvas) {
+        this.scaleRate = 1;
+        this.canvas = canvas;
+    }
+    render(src) {
+        this.canvas.width = src.width / this.scaleRate;
+        this.canvas.height = src.height / this.scaleRate;
+        let imgSrc = src.getContext("2d").getImageData(0, 0, src.width, src.height);
+        const ctx = this.canvas.getContext("2d");
+        let img = ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+        const w = img.width;
+        const h = img.height;
+        let buff32Src = new Uint32Array(imgSrc.data.buffer);
+        let buff32 = new Uint32Array(img.data.buffer);
+        for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+                buff32[y * h + x] = buff32Src[y * this.scaleRate * imgSrc.width + x * this.scaleRate];
+            }
+        }
+        ctx.imageSmoothingEnabled = false;
+        img = new ImageData(new Uint8ClampedArray(buff32.buffer), w, h);
+        ctx.putImageData(img, 0, 0);
+    }
+}
+exports.DownScaleRenderer = DownScaleRenderer;
 
 
 /***/ }),
