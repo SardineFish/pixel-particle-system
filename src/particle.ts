@@ -3,6 +3,7 @@ import { Color, SetList } from "./lib";
 import seedrandom from "seedrandom";
 import { ParticleEmitter } from "./emitter";
 import { ParticleSimulator } from "./simulator";
+import linq from "linq";
 
 export class Particle
 {
@@ -14,10 +15,19 @@ export class Particle
     size: number;
     lifeTime: number;
     color: Color;
+    randomID: number;
 }
-export class ParticleSystem
+export interface IParticleSystem
 {
     position: Vector2;
+    update(dt: number): Particle[];
+    startEmit(): void;
+    endEmit(): void;
+    clear(): void;
+}
+export class ParticleSystem implements IParticleSystem
+{
+    position: Vector2 = Vector2.zero;
     particles: SetList<Particle> = new SetList();
     duration: number = 1;
     interval: number = 0.1;
@@ -53,7 +63,9 @@ export class ParticleSystem
             }
         }
 
-        this.simulator.simulate(this.particles, dt);
+        this.simulator.simulate(this.particles, dt, this.rand);
+
+        return this.particles;
     }
 
     startEmit()
@@ -65,4 +77,55 @@ export class ParticleSystem
         this.emitting = false;
 
     }
+    clear()
+    {
+        this.particles.clear();
+    }
+}
+
+export class CombinedParticleSystem implements IParticleSystem
+{
+    position: Vector2 = new Vector2(0, 0);
+    particles: Particle[];
+    particleSystems: ParticleSystem[];
+
+    update(dt: number)
+    {
+        dt = 0.0166;
+        let particles: Particle[][] = [];
+        this.particleSystems.forEach(system =>
+        {
+            let originalPos = system.position;
+            system.position = plus(system.position, this.position);
+            particles.push(system.update(dt))
+            system.position = originalPos;
+        });
+        this.particles = new Array(linq.from(particles).sum(p => p.length));
+        let idx = 0;
+        for (let j = 0; j < particles.length; j++)
+        {
+            for (let i = 0; i < particles[j].length; i++)
+                this.particles[idx++] = particles[j][i];    
+        }
+        return this.particles;
+    }
+    startEmit()
+    {
+        this.particleSystems.forEach(system => system.startEmit());
+    }
+    endEmit()
+    {
+        this.particleSystems.forEach(system => system.endEmit());
+    }
+    clear()
+    {
+        this.particleSystems.forEach(system => system.clear());
+    }
+}
+
+export function combine(...particleSystems: ParticleSystem[])
+{
+    let system = new CombinedParticleSystem();
+    system.particleSystems = particleSystems;
+    return system;
 }

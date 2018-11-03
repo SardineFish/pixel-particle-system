@@ -1,6 +1,8 @@
 import { ParticleSystem, Particle } from "./particle";
 import { Color } from "./lib";
 
+type ParticleImageRenderer = (p:Particle, ctx: CanvasRenderingContext2D) => void;
+
 export class ParticleRenderer
 {
     canvas: HTMLCanvasElement;
@@ -117,3 +119,4 @@ export class DownScaleRenderer
         ctx.putImageData(img, 0, 0);
     }
 }
+

@@ -32,6 +32,7 @@ export class ParticleEmitter
         p.acceleration = this.acceleration(p, this.rand);
         p.color = this.color(p, this.rand);
         p.lifeTime = 0;
+        p.randomID = this.rand();
         return p;
     }
 }
@@ -51,7 +52,8 @@ export function randomColor(colorA: Color, colorB: Color):ValueGenerator<Color>
     const rangeH = new Range(colorA.hue, colorB.hue);
     const rangeS = new Range(colorA.saturation, colorB.saturation);
     const rangeL = new Range(colorA.lightness, colorB.lightness);
-    return (p, rand) => Color.fromHSL(rangeH.interpolate(rand()), rangeS.interpolate(rand()), rangeL.interpolate(rand()));
+    const rangeA = new Range(colorA.alpha, colorB.alpha);
+    return (p, rand) => Color.fromHSL(rangeH.interpolate(rand()), rangeS.interpolate(rand()), rangeL.interpolate(rand()),rangeA.interpolate(rand()));
 }
 export function circleEmitter(radius: number): ValueGenerator<Vector2>
 {

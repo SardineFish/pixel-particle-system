@@ -4249,6 +4249,7 @@ class ParticleEmitter {
         p.acceleration = this.acceleration(p, this.rand);
         p.color = this.color(p, this.rand);
         p.lifeTime = 0;
+        p.randomID = this.rand();
         return p;
     }
 }
@@ -4267,7 +4268,8 @@ function randomColor(colorA, colorB) {
     const rangeH = new math_1.Range(colorA.hue, colorB.hue);
     const rangeS = new math_1.Range(colorA.saturation, colorB.saturation);
     const rangeL = new math_1.Range(colorA.lightness, colorB.lightness);
-    return (p, rand) => lib_1.Color.fromHSL(rangeH.interpolate(rand()), rangeS.interpolate(rand()), rangeL.interpolate(rand()));
+    const rangeA = new math_1.Range(colorA.alpha, colorB.alpha);
+    return (p, rand) => lib_1.Color.fromHSL(rangeH.interpolate(rand()), rangeS.interpolate(rand()), rangeL.interpolate(rand()), rangeA.interpolate(rand()));
 }
 exports.randomColor = randomColor;
 function circleEmitter(radius) {
@@ -4359,8 +4361,8 @@ class Color {
     static blend(a, b, t) {
         return new Color((1 - t) * a.red + t * b.red, (1 - t) * a.green + t * b.green, (1 - t) * a.blue + t * b.blue, 1);
     }
-    static fromHSL(h, s, l) {
-        return new Color(0, 0, 0, 1).setHSL(h, s, l);
+    static fromHSL(h, s, l, alpha = 1) {
+        return new Color(0, 0, 0, alpha).setHSL(h, s, l);
     }
     setHSL(h, s, l) {
         h = h < 0 ? h + 360 : h;
@@ -4390,7 +4392,7 @@ class Color {
         this.blue = Math.floor((color[2] + m) * 255);
         return this;
     }
-    static fromString(str) {
+    static fromString(str, alpha = 1) {
         str = str.replace(new RegExp(/\s/g), "");
         var reg = new RegExp("#[0-9a-fA-F]{6}");
         if (reg.test(str)) {
@@ -4401,7 +4403,7 @@ class Color {
             var r = parseInt(strR, 16);
             var g = parseInt(strG, 16);
             var b = parseInt(strB, 16);
-            return new Color(r, g, b, 1.0);
+            return new Color(r, g, b, alpha);
         }
         reg = new RegExp("rgb\\(([0-9]+(\\.[0-9]+){0,1}),([0-9]+(\\.[0-9]+){0,1}),([0-9]+(\\.[0-9]+){0,1})\\)");
         if (reg.test(str)) {
@@ -4492,33 +4494,69 @@ const emitter_1 = __webpack_require__(/*! ./emitter */ "./src/emitter.ts");
 const linq_1 = __importDefault(__webpack_require__(/*! linq */ "./node_modules/linq/linq.js"));
 const $ = (selector) => document.querySelector(selector);
 const rand = seedrandom_1.default("233333");
-let particleSystem = new particle_1.ParticleSystem(rand);
-let emitter = new emitter_1.ParticleEmitter(rand);
-let simulator = new simulator_1.ParticleSimulator();
-particleSystem.emitter = emitter;
-particleSystem.simulator = simulator;
-emitter.direction = emitter_1.randomAngle(-180, 180);
-emitter.speed = emitter_1.randomInRange(400, 800);
-emitter.size = emitter_1.randomInRange(5, 10);
-emitter.color = emitter_1.randomColor(new lib_1.Color(105, 37, 42), new lib_1.Color(255, 49, 64));
-simulator.speed = simulator_1.increase(-1600);
+let particleSystem;
+let blood = new particle_1.ParticleSystem(rand);
+blood.emitter = new emitter_1.ParticleEmitter(rand);
+blood.simulator = new simulator_1.ParticleSimulator();
+blood.count = 40;
+blood.emitter.direction = emitter_1.randomAngle(-180, 180);
+blood.emitter.speed = emitter_1.randomInRange(50, 300);
+blood.emitter.size = emitter_1.randomInRange(5, 10);
+blood.emitter.color = emitter_1.randomColor(new lib_1.Color(105, 37, 42), new lib_1.Color(255, 49, 64));
+blood.emitter.acceleration = simulator_1.constantValue(math_1.vec2(0, 800));
+//simulator.speed = increase(-1600);
 //simulator.color = deathColor(new Color(105, 37, 42), .3);
-simulator.size = simulator_1.increase(-20);
+blood.simulator.size = simulator_1.increase(-20);
+let fire = new particle_1.ParticleSystem(rand);
+fire.count = 3;
+fire.interval = 0.1;
+fire.emitter.direction = emitter_1.randomAngle(-20, 20);
+fire.emitter.size = emitter_1.randomInRange(10, 20);
+fire.emitter.speed = simulator_1.constantValue(100);
+fire.emitter.color = emitter_1.randomColor(lib_1.Color.fromString("#fff044"), lib_1.Color.fromString("#ffb244"));
+fire.emitter.acceleration = simulator_1.constantValue(math_1.vec2(0, -100));
+fire.simulator.size = simulator_1.increase(30, 30);
+fire.simulator.destroy = simulator_1.randomTimeDestroy(1.6);
+fire.simulator.color = simulator_1.deathColor(lib_1.Color.fromString("#461f1c", 0.1), 2);
+let largeSmoke = new particle_1.ParticleSystem(rand);
+largeSmoke.count = 3;
+largeSmoke.interval = 0.3;
+largeSmoke.emitter.direction = emitter_1.randomAngle(-10, 10);
+largeSmoke.emitter.size = simulator_1.constantValue(0);
+largeSmoke.emitter.speed = simulator_1.constantValue(50);
+largeSmoke.emitter.color = simulator_1.constantValue(lib_1.Color.fromString("#7a6a66"));
+largeSmoke.simulator.size = simulator_1.increase(20);
+largeSmoke.simulator.destroy = simulator_1.randomTimeDestroy(3);
+largeSmoke.simulator.color = simulator_1.deathColor(new lib_1.Color(52, 45, 43, 0), 5);
+let smoke = new particle_1.ParticleSystem(rand);
+smoke.position = math_1.vec2(0, -100);
+smoke.count = 5;
+smoke.interval = 0.1;
+smoke.emitter.direction = emitter_1.randomAngle(-30, 30);
+smoke.emitter.size = emitter_1.randomInRange(20, 30);
+smoke.emitter.speed = simulator_1.constantValue(80);
+smoke.emitter.color = emitter_1.randomColor(new lib_1.Color(122, 106, 102, 0.6), new lib_1.Color(123, 59, 46, 0.6));
+smoke.emitter.acceleration = simulator_1.constantValue(math_1.vec2(0, -100));
+smoke.emitter.position = emitter_1.circleEmitter(40);
+smoke.simulator.size = simulator_1.increase(20, 40);
+smoke.simulator.destroy = simulator_1.randomTimeDestroy(2);
+smoke.simulator.color = simulator_1.deathColor(new lib_1.Color(52, 45, 43, 0.6), 2);
+particleSystem = particle_1.combine(largeSmoke, smoke, fire);
 // UI
 let fpsBuffer = new lib_1.LoopList(30);
 let downScaleRenderer = new render_1.DownScaleRenderer($("#canvas-render"));
-downScaleRenderer.scaleRate = 4;
+downScaleRenderer.scaleRate = 8;
 let renderer = new render_1.ParticleRenderer($("#canvas-preview"));
 window.renderer = renderer;
-renderer.composite = "color";
+renderer.composite; //= "lighten"
 renderer.start();
 renderer.onUpdate = (dt) => {
-    particleSystem.update(dt);
-    renderer.clear();
-    renderer.render(particleSystem.particles);
+    renderer.clear(new lib_1.Color(0, 0, 0, 0));
+    let particles = particleSystem.update(dt);
+    renderer.render(particles);
     downScaleRenderer.render(renderer.canvas);
     // Performace
-    $("#particles-count").innerText = particleSystem.particles.length.toString();
+    $("#particles-count").innerText = particles.length.toString();
     fpsBuffer.insert(1 / dt);
     $("#fps").innerText = Math.round(linq_1.default.from(fpsBuffer).sum() / fpsBuffer.length).toString();
 };
@@ -4539,7 +4577,7 @@ renderer.canvas.addEventListener("mousemove", (e) => {
 });
 $("#button-stop").onclick = e => {
     renderer.clear();
-    particleSystem.particles.clear();
+    particleSystem.clear();
     particleSystem.endEmit();
 };
 
@@ -4792,15 +4830,18 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const math_1 = __webpack_require__(/*! ./math */ "./src/math.ts");
 const lib_1 = __webpack_require__(/*! ./lib */ "./src/lib.ts");
 const seedrandom_1 = __importDefault(__webpack_require__(/*! seedrandom */ "./node_modules/seedrandom/index.js"));
 const emitter_1 = __webpack_require__(/*! ./emitter */ "./src/emitter.ts");
 const simulator_1 = __webpack_require__(/*! ./simulator */ "./src/simulator.ts");
+const linq_1 = __importDefault(__webpack_require__(/*! linq */ "./node_modules/linq/linq.js"));
 class Particle {
 }
 exports.Particle = Particle;
 class ParticleSystem {
     constructor(rand) {
+        this.position = math_1.Vector2.zero;
         this.particles = new lib_1.SetList();
         this.duration = 1;
         this.interval = 0.1;
@@ -4824,7 +4865,8 @@ class ParticleSystem {
                 this.particles.push(this.emitter.emit(this.position));
             }
         }
-        this.simulator.simulate(this.particles, dt);
+        this.simulator.simulate(this.particles, dt, this.rand);
+        return this.particles;
     }
     startEmit() {
         this.emitting = true;
@@ -4832,8 +4874,49 @@ class ParticleSystem {
     endEmit() {
         this.emitting = false;
     }
+    clear() {
+        this.particles.clear();
+    }
 }
 exports.ParticleSystem = ParticleSystem;
+class CombinedParticleSystem {
+    constructor() {
+        this.position = new math_1.Vector2(0, 0);
+    }
+    update(dt) {
+        dt = 0.0166;
+        let particles = [];
+        this.particleSystems.forEach(system => {
+            let originalPos = system.position;
+            system.position = math_1.plus(system.position, this.position);
+            particles.push(system.update(dt));
+            system.position = originalPos;
+        });
+        this.particles = new Array(linq_1.default.from(particles).sum(p => p.length));
+        let idx = 0;
+        for (let j = 0; j < particles.length; j++) {
+            for (let i = 0; i < particles[j].length; i++)
+                this.particles[idx++] = particles[j][i];
+        }
+        return this.particles;
+    }
+    startEmit() {
+        this.particleSystems.forEach(system => system.startEmit());
+    }
+    endEmit() {
+        this.particleSystems.forEach(system => system.endEmit());
+    }
+    clear() {
+        this.particleSystems.forEach(system => system.clear());
+    }
+}
+exports.CombinedParticleSystem = CombinedParticleSystem;
+function combine(...particleSystems) {
+    let system = new CombinedParticleSystem();
+    system.particleSystems = particleSystems;
+    return system;
+}
+exports.combine = combine;
 
 
 /***/ }),
@@ -4946,10 +5029,9 @@ class ParticleSimulator {
         this.color = KeepValue;
         this.destroy = exports.SizeDestroy;
     }
-    simulate(particles, dt) {
+    simulate(particles, dt, rand) {
         for (let i = 0; i < particles.length; i++) {
             let p = particles[i];
-            p.lifeTime += dt;
             // Size editor
             p.size = this.size(p.size, dt, p);
             // acceleration editor
@@ -4969,8 +5051,9 @@ class ParticleSimulator {
             p.position = math_1.plus(p.position, math_1.scale(p.velocity, dt));
             // Color editor
             p.color = this.color(p.color, dt, p);
-            if (this.destroy(p))
+            if (this.destroy(p, rand))
                 particles.removeAt(i--);
+            p.lifeTime += dt;
         }
     }
 }
@@ -4978,8 +5061,11 @@ exports.ParticleSimulator = ParticleSimulator;
 function KeepValue(t) { return t; }
 exports.KeepValue = KeepValue;
 exports.SizeDestroy = (p) => p.size <= 0;
-function increase(inc) {
-    return (v, t) => v + inc * t;
+function increase(inc, max = Number.MAX_VALUE) {
+    return (v, t) => {
+        let value = v + inc * t;
+        return value > max ? max : value;
+    };
 }
 exports.increase = increase;
 function constantValue(value) {
@@ -5003,10 +5089,25 @@ function deathColor(deathColor, deathTime) {
         let rangeH = new math_1.Range(color.hue, deathColor.hue);
         let rangeS = new math_1.Range(color.saturation, deathColor.saturation);
         let rangeL = new math_1.Range(color.lightness, deathColor.lightness);
-        return lib_1.Color.fromHSL(rangeH.interpolate(math_1.clamp01(dt / restTime)), rangeS.interpolate(math_1.clamp01(dt / restTime)), rangeL.interpolate(math_1.clamp01(dt / restTime)));
+        let rangeAlpha = new math_1.Range(color.alpha, deathColor.alpha);
+        color = lib_1.Color.fromHSL(rangeH.interpolate(math_1.clamp01(dt / restTime)), rangeS.interpolate(math_1.clamp01(dt / restTime)), rangeL.interpolate(math_1.clamp01(dt / restTime)));
+        color.alpha = rangeAlpha.interpolate(math_1.clamp01(dt / restTime));
+        return color;
     };
 }
 exports.deathColor = deathColor;
+function timeDestroy(time) {
+    return (p) => p.lifeTime >= time;
+}
+exports.timeDestroy = timeDestroy;
+function randomDestroy(prob) {
+    return (p, rand) => p.randomID <= prob;
+}
+exports.randomDestroy = randomDestroy;
+function randomTimeDestroy(maxTime) {
+    return (p, rand) => p.lifeTime >= (p.randomID * maxTime);
+}
+exports.randomTimeDestroy = randomTimeDestroy;
 
 
 /***/ }),

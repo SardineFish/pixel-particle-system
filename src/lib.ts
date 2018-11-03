@@ -83,9 +83,9 @@ export class Color
         );
     }
 
-    static fromHSL(h: number, s: number, l: number)
+    static fromHSL(h: number, s: number, l: number, alpha:number=1)
     {
-        return new Color(0, 0, 0, 1).setHSL(h, s, l);
+        return new Color(0, 0, 0, alpha).setHSL(h, s, l);
     }
 
     setHSL(h: number, s: number, l: number)
@@ -119,7 +119,7 @@ export class Color
         return this;
     }
 
-    static fromString(str:string):Color
+    static fromString(str:string, alpha:number=1):Color
     {
         str = str.replace(new RegExp(/\s/g), "");
 
@@ -133,7 +133,7 @@ export class Color
             var r = parseInt(strR, 16);
             var g = parseInt(strG, 16);
             var b = parseInt(strB, 16);
-            return new Color(r, g, b, 1.0);
+            return new Color(r, g, b, alpha);
         }
         reg = new RegExp("rgb\\(([0-9]+(\\.[0-9]+){0,1}),([0-9]+(\\.[0-9]+){0,1}),([0-9]+(\\.[0-9]+){0,1})\\)");
         if (reg.test(str))

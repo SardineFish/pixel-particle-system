@@ -3,7 +3,7 @@ import { Vector2, scale, plus, Range, clamp01 } from "./math";
 import { Color, SetList } from "./lib";
 
 type ValueSimulator<T=number | Vector2 | Color> = (value: T, dt: number, p: Particle) => T;
-type ParticleDestroy = (p: Particle) => boolean;
+type ParticleDestroy = (p: Particle, rand: seedrandom.prng) => boolean;
 
 export class ParticleSimulator
 {
@@ -15,13 +15,11 @@ export class ParticleSimulator
     color: ValueSimulator<Color> = KeepValue;
     destroy: ParticleDestroy = SizeDestroy;
 
-    simulate(particles: SetList<Particle>, dt:number)
+    simulate(particles: SetList<Particle>, dt:number, rand:seedrandom.prng)
     {
         for (let i = 0; i < particles.length; i++)
         {
             let p = particles[i];
-
-            p.lifeTime += dt;
 
             // Size editor
             p.size = this.size(p.size, dt, p);
@@ -47,8 +45,10 @@ export class ParticleSimulator
             // Color editor
             p.color = this.color(p.color, dt, p); 
 
-            if (this.destroy(p))
+            if (this.destroy(p,rand))
                 particles.removeAt(i--);
+            
+            p.lifeTime += dt;
         }
     }
 }
@@ -56,9 +56,13 @@ export class ParticleSimulator
 export function KeepValue<T=number | Vector2 | Color>(t: T) { return t }
 export const SizeDestroy = (p: Particle) => p.size <= 0;
 
-export function increase(inc: number): ValueSimulator<number>
+export function increase(inc: number, max: number = Number.MAX_VALUE): ValueSimulator<number>
 {
-    return (v, t) => v + inc * t;
+    return (v, t) =>
+    {
+        let value = v + inc * t;
+        return value > max ? max : value;
+    };
 }
 export function constantValue<T>(value: T): () => T
 {
@@ -89,9 +93,27 @@ export function deathColor(deathColor: Color, deathTime: number): ValueSimulator
         let rangeH = new Range(color.hue, deathColor.hue);
         let rangeS = new Range(color.saturation, deathColor.saturation);
         let rangeL = new Range(color.lightness, deathColor.lightness);
-        return Color.fromHSL(
+        let rangeAlpha = new Range(color.alpha, deathColor.alpha);
+        color = Color.fromHSL(
             rangeH.interpolate(clamp01(dt / restTime)),
             rangeS.interpolate(clamp01(dt / restTime)),
             rangeL.interpolate(clamp01(dt / restTime)));
+        color.alpha = rangeAlpha.interpolate(clamp01(dt / restTime));
+        return color;
     }
+}
+
+export function timeDestroy(time: number):ParticleDestroy
+{
+    return (p) => p.lifeTime >= time;
+}
+
+export function randomDestroy(prob: number): ParticleDestroy
+{
+    return (p, rand) => p.randomID <= prob;
+}
+
+export function randomTimeDestroy(maxTime: number): ParticleDestroy
+{
+    return (p, rand) => p.lifeTime >= (p.randomID * maxTime);
 }
