@@ -64,6 +64,15 @@ export function increase(inc: number, max: number = Number.MAX_VALUE): ValueSimu
         return value > max ? max : value;
     };
 }
+
+export function decrease(dec: number, min: number = 0): ValueSimulator<number>
+{
+    return (v, t) =>
+    {
+        let value = v - dec  * t;
+        return value < min ? min : value;
+    }
+}
 export function constantValue<T>(value: T): () => T
 {
     return () => value;

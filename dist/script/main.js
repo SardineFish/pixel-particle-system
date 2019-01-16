@@ -4230,6 +4230,7 @@ const math_1 = __webpack_require__(/*! ./math */ "./src/math.ts");
 const particle_1 = __webpack_require__(/*! ./particle */ "./src/particle.ts");
 const lib_1 = __webpack_require__(/*! ./lib */ "./src/lib.ts");
 const simulator_1 = __webpack_require__(/*! ./simulator */ "./src/simulator.ts");
+const render_1 = __webpack_require__(/*! ./render */ "./src/render.ts");
 class ParticleEmitter {
     constructor(rand) {
         this.acceleration = simulator_1.constantValue(math_1.Vector2.zero);
@@ -4238,6 +4239,7 @@ class ParticleEmitter {
         this.speed = simulator_1.constantValue(100);
         this.direction = randomAngle(-180, 180);
         this.color = simulator_1.constantValue(new lib_1.Color(0, 0, 0, 1));
+        this.renderer = render_1.circleRenderer;
         this.rand = rand;
     }
     emit(position) {
@@ -4250,6 +4252,7 @@ class ParticleEmitter {
         p.color = this.color(p, this.rand);
         p.lifeTime = 0;
         p.randomID = this.rand();
+        p.renderer = this.renderer;
         return p;
     }
 }
@@ -4541,7 +4544,45 @@ smoke.emitter.position = emitter_1.circleEmitter(40);
 smoke.simulator.size = simulator_1.increase(20, 40);
 smoke.simulator.destroy = simulator_1.randomTimeDestroy(2);
 smoke.simulator.color = simulator_1.deathColor(new lib_1.Color(52, 45, 43, 0.6), 2);
-particleSystem = particle_1.combine(largeSmoke, smoke, fire);
+let fireAndSmoke = particle_1.combine(largeSmoke, smoke, fire);
+let water = new particle_1.ParticleSystem(rand);
+water.emitter.direction = simulator_1.constantValue(math_1.vec2(0, 1));
+water.emitter.speed = simulator_1.constantValue(0);
+water.emitter.color = emitter_1.randomColor(lib_1.Color.fromString("#74c2e7"), lib_1.Color.fromString("#5297d8"));
+water.emitter.position = emitter_1.lineEmitter(30);
+water.emitter.size = emitter_1.randomInRange(5, 20);
+water.simulator.acceleration = simulator_1.constantValue(math_1.vec2(0, 300));
+let foam = new particle_1.ParticleSystem(rand);
+foam.count = 5;
+foam.emitter.color = emitter_1.randomColor(new lib_1.Color(255, 255, 255), lib_1.Color.fromString("#e2f1ff"));
+foam.emitter.position = emitter_1.lineEmitter(40);
+foam.emitter.size = emitter_1.randomInRange(5, 20);
+foam.emitter.speed = emitter_1.randomInRange(20, 50);
+foam.simulator.destroy = simulator_1.randomTimeDestroy(0.5);
+//particleSystem = combine(water, foam);
+let boom = new particle_1.ParticleSystem(rand);
+boom.emitter.size = emitter_1.randomInRange(1, 10);
+boom.emitter.speed = emitter_1.randomInRange(800, 1500);
+boom.emitter.color = emitter_1.randomColor(lib_1.Color.fromString("#ff2818"), lib_1.Color.fromString("#fec65a"));
+boom.simulator.speed = simulator_1.decrease(4000);
+boom.simulator.size = simulator_1.decrease(20);
+boom.simulator.color = simulator_1.deathColor(lib_1.Color.fromString("#fef85a"), 0.3);
+let boom1 = new particle_1.ParticleSystem(rand);
+boom1.emitter.size = emitter_1.randomInRange(10, 20);
+boom1.emitter.speed = emitter_1.randomInRange(500, 600);
+boom1.emitter.color = emitter_1.randomColor(lib_1.Color.fromString("#ff2818"), lib_1.Color.fromString("#ff6418"));
+boom1.simulator.speed = simulator_1.decrease(3000);
+boom1.simulator.size = simulator_1.decrease(50);
+boom1.simulator.color = simulator_1.deathColor(lib_1.Color.fromString("#ffb018"), 0.3);
+let emmmm = new particle_1.ParticleSystem(rand);
+emmmm.emitter.size = emitter_1.randomInRange(10, 1);
+emmmm.emitter.speed = emitter_1.randomInRange(300, 600);
+emmmm.emitter.color = simulator_1.constantValue(new lib_1.Color(255, 255, 255));
+emmmm.simulator.size = simulator_1.decrease(10);
+emmmm.simulator.acceleration = (v, dt, p) => {
+    return math_1.scale(math_1.rotateDeg(p.direction, 90), 5000);
+};
+particleSystem = fireAndSmoke; //combine(boom1, boom);
 // UI
 let fpsBuffer = new lib_1.LoopList(30);
 let downScaleRenderer = new render_1.DownScaleRenderer($("#canvas-render"));
@@ -5003,6 +5044,20 @@ class DownScaleRenderer {
     }
 }
 exports.DownScaleRenderer = DownScaleRenderer;
+function circleRenderer(p, ctx) {
+    ctx.fillStyle = p.color.toString();
+    ctx.beginPath();
+    ctx.arc(p.position.x, p.position.y, p.size, 0, 2 * Math.PI);
+    ctx.fill();
+}
+exports.circleRenderer = circleRenderer;
+/*
+export function imageRenderer(src: string):ParticleImageRenderer
+{
+    let img = new Image();
+    img.src = src;
+    
+}*/ 
 
 
 /***/ }),
@@ -5068,6 +5123,13 @@ function increase(inc, max = Number.MAX_VALUE) {
     };
 }
 exports.increase = increase;
+function decrease(dec, min = 0) {
+    return (v, t) => {
+        let value = v - dec * t;
+        return value < min ? min : value;
+    };
+}
+exports.decrease = decrease;
 function constantValue(value) {
     return () => value;
 }

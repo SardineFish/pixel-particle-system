@@ -1,7 +1,7 @@
 import { ParticleSystem, Particle } from "./particle";
 import { Color } from "./lib";
 
-type ParticleImageRenderer = (p:Particle, ctx: CanvasRenderingContext2D) => void;
+export type ParticleImageRenderer = (p:Particle, ctx: CanvasRenderingContext2D) => void;
 
 export class ParticleRenderer
 {
@@ -120,3 +120,18 @@ export class DownScaleRenderer
     }
 }
 
+export function circleRenderer(p: Particle, ctx: CanvasRenderingContext2D)
+{
+    ctx.fillStyle = p.color.toString();
+    ctx.beginPath();
+    ctx.arc(p.position.x, p.position.y, p.size, 0, 2 * Math.PI);
+    ctx.fill();
+}
+
+/*
+export function imageRenderer(src: string):ParticleImageRenderer
+{
+    let img = new Image();
+    img.src = src;
+    
+}*/

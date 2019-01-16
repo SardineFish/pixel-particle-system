@@ -2,9 +2,9 @@ import { ParticleRenderer, DownScaleRenderer } from "./render";
 import { SetList, Color, LoopList } from "./lib";
 import { Particle, ParticleSystem, IParticleSystem, combine } from "./particle";
 import seedrandom from "seedrandom";
-import { vec2, Range } from "./math";
-import { ParticleSimulator, constantValue, increase, lifeTimeColor, deathColor, randomTimeDestroy, randomDestroy } from "./simulator";
-import { ParticleEmitter, randomAngle, randomInRange, randomColor, circleEmitter } from "./emitter";
+import { vec2, Range, rotateDeg, scale } from "./math";
+import { ParticleSimulator, constantValue, increase, lifeTimeColor, deathColor, randomTimeDestroy, randomDestroy, decrease } from "./simulator";
+import { ParticleEmitter, randomAngle, randomInRange, randomColor, circleEmitter, lineEmitter } from "./emitter";
 import linq from "linq";
 
 const $ = (selector: string): HTMLElement => document.querySelector(selector);
@@ -68,14 +68,62 @@ smoke.simulator.size = increase(20, 40);
 smoke.simulator.destroy = randomTimeDestroy(2);
 smoke.simulator.color = deathColor(new Color(52,45,43,0.6), 2);
 
-particleSystem = combine(largeSmoke, smoke, fire );
+let fireAndSmoke = combine(largeSmoke, smoke, fire );
 
 
+let water = new ParticleSystem(rand);
+water.emitter.direction = constantValue(vec2(0, 1));
+water.emitter.speed = constantValue(0);
+water.emitter.color = randomColor(Color.fromString("#74c2e7"), Color.fromString("#5297d8"));
+water.emitter.position = lineEmitter(30);
+water.emitter.size = randomInRange(5, 20);
+
+water.simulator.acceleration = constantValue(vec2(0, 300));
 
 
+let foam = new ParticleSystem(rand);
+foam.count = 5;
+foam.emitter.color = randomColor(new Color(255, 255, 255), Color.fromString("#e2f1ff"));
+foam.emitter.position = lineEmitter(40);
+foam.emitter.size = randomInRange(5, 20);
+foam.emitter.speed = randomInRange(20, 50);
+
+foam.simulator.destroy = randomTimeDestroy(0.5);
+
+//particleSystem = combine(water, foam);
+
+let boom = new ParticleSystem(rand);
+boom.emitter.size = randomInRange(1, 10);
+boom.emitter.speed = randomInRange(800,1500);
+boom.emitter.color = randomColor(Color.fromString("#ff2818"), Color.fromString("#fec65a"));
+
+boom.simulator.speed = decrease(4000);
+boom.simulator.size = decrease(20); 
+boom.simulator.color = deathColor(Color.fromString("#fef85a"), 0.3);
 
 
+let boom1 = new ParticleSystem(rand);
+boom1.emitter.size = randomInRange(10, 20);
+boom1.emitter.speed = randomInRange(500, 600);
+boom1.emitter.color = randomColor(Color.fromString("#ff2818"), Color.fromString("#ff6418"));
 
+boom1.simulator.speed = decrease(3000);
+boom1.simulator.size = decrease(50);
+boom1.simulator.color = deathColor(Color.fromString("#ffb018"), 0.3);
+
+
+let emmmm = new ParticleSystem(rand);
+emmmm.emitter.size = randomInRange(10, 1);
+emmmm.emitter.speed = randomInRange(300, 600);
+emmmm.emitter.color = constantValue(new Color(255, 255, 255));
+
+emmmm.simulator.size = decrease(10);
+emmmm.simulator.acceleration = (v, dt, p) =>
+{
+    return scale(rotateDeg(p.direction, 90), 5000);
+}
+
+particleSystem = fireAndSmoke; //combine(boom1, boom);
 
 
 

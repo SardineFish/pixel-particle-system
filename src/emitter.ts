@@ -3,6 +3,7 @@ import { Particle } from "./particle";
 import { Color } from "./lib";
 import seedrandom from "seedrandom";
 import { constantValue } from "./simulator";
+import { ParticleImageRenderer, circleRenderer } from "./render";
 
 type ValueGenerator<T=number | Vector2 | Color> = (p: Particle, rand: seedrandom.prng) => T;
 
@@ -16,6 +17,7 @@ export class ParticleEmitter
     direction: ValueGenerator<Vector2> = randomAngle(-180, 180);
     color: ValueGenerator<Color> = constantValue(new Color(0, 0, 0, 1));
     rand: seedrandom.prng;
+    renderer: ParticleImageRenderer = circleRenderer;
 
     constructor(rand: seedrandom.prng)
     {
@@ -33,6 +35,7 @@ export class ParticleEmitter
         p.color = this.color(p, this.rand);
         p.lifeTime = 0;
         p.randomID = this.rand();
+        p.renderer = this.renderer;
         return p;
     }
 }

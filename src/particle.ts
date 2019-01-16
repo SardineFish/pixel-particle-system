@@ -4,6 +4,7 @@ import seedrandom from "seedrandom";
 import { ParticleEmitter } from "./emitter";
 import { ParticleSimulator } from "./simulator";
 import linq from "linq";
+import { ParticleImageRenderer } from "./render";
 
 export class Particle
 {
@@ -16,6 +17,7 @@ export class Particle
     lifeTime: number;
     color: Color;
     randomID: number;
+    renderer: ParticleImageRenderer;
 }
 export interface IParticleSystem
 {
