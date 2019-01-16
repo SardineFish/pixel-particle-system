@@ -1,0 +1,4 @@
+[submodule "dist"]
+	path = dist
+	url = https://github.com/SardineFish/pixel-particle-system.git
+	branch = gh-pages
